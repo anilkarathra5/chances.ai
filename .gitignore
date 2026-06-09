@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+
+# Streamlit secrets (NEVER commit — set these in the Streamlit Cloud dashboard)
+.streamlit/secrets.toml
+
+# Private experience data — kept LOCAL only; provided to the cloud via Streamlit
+# Secrets (EXPERIENCE_DB), never committed to the (public) repo.
+experience_database.json
+
+# Generated / local files
+*.pdf
+*.log
+
+# Editor/agent
+.claude/
+.idea/
+.vscode/
