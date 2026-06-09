@@ -23,26 +23,50 @@ from datetime import datetime
 from google import genai
 from google.genai import types
 
+# Switchable LLM backends. Gemini is the default (free tier); Claude is optional.
+PROVIDERS = {
+    "Google Gemini": {
+        "models": ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"],
+        "key_env": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+        "key_label": "Google Gemini API key",
+        "key_help": "Free key from https://aistudio.google.com/apikey",
+    },
+    "Anthropic Claude": {
+        "models": ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5-20251001"],
+        "key_env": ["ANTHROPIC_API_KEY"],
+        "key_label": "Anthropic API key",
+        "key_help": "Key from https://console.anthropic.com/settings/keys (paid usage).",
+    },
+}
+DEFAULT_PROVIDER = "Google Gemini"
 DEFAULT_MODEL = "gemini-2.5-flash"
 
 
-def get_client(api_key: str) -> genai.Client:
+def get_client(provider: str, api_key: str):
+    """Create the backend client for the chosen provider."""
+    if provider == "Anthropic Claude":
+        from anthropic import Anthropic  # lazy import: only needed if Claude is used
+        return Anthropic(api_key=api_key)
     return genai.Client(api_key=api_key)
 
 
-def _call(client: genai.Client, model: str, prompt: str, max_tokens: int = 6144) -> str:
-    # Both callers expect JSON, so ask Gemini for JSON directly; _extract_json
-    # still defends against fences/prose if the model ignores the hint. Low
-    # temperature keeps selection/rephrasing faithful to the source database.
+def _call(provider: str, client, model: str, prompt: str, max_tokens: int = 6144) -> str:
+    """Dispatch a single JSON-returning completion to the chosen provider."""
+    if provider == "Anthropic Claude":
+        return _call_claude(client, model, prompt, max_tokens)
+    return _call_gemini(client, model, prompt, max_tokens)
+
+
+def _call_gemini(client, model: str, prompt: str, max_tokens: int) -> str:
+    # Ask Gemini for JSON directly; _extract_json still defends against fences/prose
+    # if the model ignores the hint. Low temperature keeps rephrasing faithful.
     cfg = dict(
         max_output_tokens=max_tokens,
         temperature=0.3,
         response_mime_type="application/json",
     )
-    # Gemini 2.5 models "think" by default, and those thinking tokens are drawn
-    # from max_output_tokens — which can truncate the JSON mid-string. Disable
-    # thinking for 2.5 so the whole budget goes to the actual answer. (Older
-    # 1.5/2.0 models don't accept thinking_config, so only set it for 2.5.)
+    # Gemini 2.5 models "think" by default, drawing from max_output_tokens — which
+    # can truncate the JSON. Disable thinking for 2.5 (1.5/2.0 don't accept it).
     if model.startswith("gemini-2.5"):
         cfg["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
 
@@ -50,8 +74,6 @@ def _call(client: genai.Client, model: str, prompt: str, max_tokens: int = 6144)
         model=model, contents=prompt,
         config=types.GenerateContentConfig(**cfg),
     )
-
-    # Surface truncation as a clear message instead of a cryptic JSON error.
     try:
         finish = getattr(resp.candidates[0].finish_reason, "name", None)
     except (AttributeError, IndexError, TypeError):
@@ -61,12 +83,30 @@ def _call(client: genai.Client, model: str, prompt: str, max_tokens: int = 6144)
             "Gemini ran out of output tokens before completing the JSON. "
             "Try the gemini-2.0-flash model, or a smaller experience database."
         )
-
     text = resp.text
     if not text:
         raise RuntimeError(
             "Empty response from Gemini (the request may have been blocked, e.g. "
             "by a safety filter). Try a different model or rephrase the input."
+        )
+    return text
+
+
+def _call_claude(client, model: str, prompt: str, max_tokens: int) -> str:
+    # Claude has no JSON-mode flag, but the prompts already demand JSON-only output
+    # and _extract_json strips any stray fences/prose. Low temperature = faithful.
+    resp = client.messages.create(
+        model=model,
+        max_tokens=max_tokens,
+        temperature=0.3,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = "".join(getattr(b, "text", "") for b in resp.content
+                   if getattr(b, "type", None) == "text")
+    if not text:
+        raise RuntimeError(
+            "Empty response from Claude (the request may have been refused or hit "
+            "the token limit). Try a different model or shorten the input."
         )
     return text
 
@@ -329,7 +369,7 @@ def _build_education_from_db(database: dict) -> list:
     return out
 
 
-def tailor_resume(client: genai.Client, model: str, database: dict, jd_text: str) -> dict:
+def tailor_resume(provider: str, client, model: str, database: dict, jd_text: str) -> dict:
     prompt = f"""You are an expert resume writer and recruiter. First analyze the target job description below to understand its requirements and the exact terms an ATS/recruiter would search for, then tailor a candidate's resume to it using ONLY the candidate's real experience database, and honestly assess fit.
 
 CRITICAL RULES:
@@ -378,7 +418,7 @@ JOB DESCRIPTION:
 
 CANDIDATE EXPERIENCE DATABASE:
 {json.dumps(database, indent=2)}"""
-    result = _clean_placeholders(_extract_json(_call(client, model, prompt, max_tokens=16384)))
+    result = _clean_placeholders(_extract_json(_call(provider, client, model, prompt, max_tokens=16384)))
     result = _ensure_absolute_figures(result, database)
     result = _limit_opening_verbs(result)
     result = _sort_experience(result)

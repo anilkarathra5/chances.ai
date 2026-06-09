@@ -45,10 +45,14 @@ roles I've tailored for by fit.
 
 ## Conventions
 
-- Backend is the **Google Gemini API** (free tier). Default model
-  `gemini-2.5-flash`; also allow `gemini-2.0-flash` and `gemini-1.5-flash`.
-- API key from `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) env var or the sidebar
-  field. Get a free key at https://aistudio.google.com/apikey.
+- Backend is **switchable** via the sidebar Provider toggle (see `PROVIDERS` in
+  `tailor.py`). Default is the **Google Gemini API** (free tier; default model
+  `gemini-2.5-flash`, also `gemini-2.0-flash`/`gemini-1.5-flash`); optional is the
+  **Anthropic Claude API** (paid; `claude-sonnet-4-6`/`claude-opus-4-8`/
+  `claude-haiku-4-5-20251001`). The Claude SDK is imported lazily.
+- API key per provider from its env var (`GEMINI_API_KEY`/`GOOGLE_API_KEY` or
+  `ANTHROPIC_API_KEY`) or the sidebar field. Free Gemini key:
+  https://aistudio.google.com/apikey.
 - Streamlit session state only — no browser storage (localStorage/sessionStorage
   fail in this context).
 - Parse model JSON robustly: strip ```json fences, fall back to the outermost

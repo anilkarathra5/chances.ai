@@ -108,17 +108,20 @@ def _pdf_filename(title: str) -> str:
 # --- Sidebar -----------------------------------------------------------------
 with st.sidebar:
     st.header("Setup")
+    provider = st.radio(
+        "Provider",
+        list(tailor.PROVIDERS.keys()),
+        index=list(tailor.PROVIDERS).index(tailor.DEFAULT_PROVIDER),
+    )
+    _cfg = tailor.PROVIDERS[provider]
+    _default_key = next((os.environ.get(e, "") for e in _cfg["key_env"] if os.environ.get(e)), "")
     api_key = st.text_input(
-        "Google Gemini API key",
-        value=os.environ.get("GEMINI_API_KEY", os.environ.get("GOOGLE_API_KEY", "")),
+        _cfg["key_label"],
+        value=_default_key,
         type="password",
-        help="Free key from https://aistudio.google.com/apikey — stored only for this session.",
+        help=_cfg["key_help"] + " — stored only for this session.",
     )
-    model = st.selectbox(
-        "Model",
-        ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"],
-        index=0,
-    )
+    model = st.selectbox("Model", _cfg["models"], index=0)
     st.divider()
     st.subheader("Experience database")
     db_file = st.file_uploader("Override experience_database.json (optional)", type=["json"])
@@ -147,16 +150,16 @@ with tab_tailor:
 
     if go:
         if not api_key:
-            st.error("Add your Google Gemini API key in the sidebar first.")
+            st.error(f"Add your {provider} API key in the sidebar first.")
             st.stop()
         if not st.session_state.database:
             st.error("Upload your experience database in the sidebar first.")
             st.stop()
 
-        client = tailor.get_client(api_key)
+        client = tailor.get_client(provider, api_key)
         try:
             with st.spinner("Analyzing the job description, tailoring, and assessing fit…"):
-                result = tailor.tailor_resume(client, model, st.session_state.database, jd_text)
+                result = tailor.tailor_resume(provider, client, model, st.session_state.database, jd_text)
         except Exception as e:
             st.error(f"Something went wrong: {e}")
             st.stop()
