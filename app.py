@@ -29,8 +29,7 @@ def _secret(name: str):
     """Read a value from Streamlit secrets, falling back to env var; tolerant of
     no secrets file existing (local use)."""
     try:
-        if name in st.secrets:
-            return st.secrets[name]
+        return st.secrets[name]
     except Exception:
         pass
     return os.environ.get(name)
@@ -124,7 +123,12 @@ with st.sidebar:
         n = len(st.session_state.database.get("accomplishments", []))
         st.caption(f"Using bundled database — {n} accomplishments.")
     else:
+        try:
+            _seen = list(st.secrets.keys())
+        except Exception as _e:
+            _seen = [f"(secrets error: {_e})"]
         st.warning("No database found — upload one to begin.")
+        st.caption(f"debug · secrets keys visible: {_seen}")
 
 # --- Main --------------------------------------------------------------------
 st.title("📄 Resume Tailor")
