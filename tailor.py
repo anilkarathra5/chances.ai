@@ -110,7 +110,7 @@ def _ensure_absolute_figures(result: dict, database: dict) -> dict:
     "~$3 per unit" behind a "15%" result) survives into the rewritten bullet.
 
     Deliberately conservative: it skips any note flagged projected/unrealized
-    (so the bracket's $317.5K is never injected), only looks at relative "%"
+    (so a projected/unrealized figure is never injected), only looks at relative "%"
     metrics, and edits a bullet only when it can match exactly one — otherwise it
     leaves the text untouched.
     """

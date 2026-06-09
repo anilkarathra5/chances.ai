@@ -86,6 +86,16 @@ def make_pdf_bytes(profile: dict, resume: dict) -> bytes:
     return data
 
 
+def _pdf_filename(title: str) -> str:
+    """Build the download filename from the loaded profile name (kept out of the
+    repo — it comes from the database at runtime), falling back to 'Resume'."""
+    name = ""
+    if st.session_state.database:
+        name = st.session_state.database.get("profile", {}).get("name", "")
+    prefix = (name or "Resume").replace(" ", "_")
+    return f"{prefix}_{title.replace(' ', '_')}.pdf"
+
+
 # --- Sidebar -----------------------------------------------------------------
 with st.sidebar:
     st.header("Setup")
@@ -194,7 +204,7 @@ with tab_tailor:
             st.download_button(
                 "⬇ Download resume (PDF)",
                 data=pdf_bytes,
-                file_name=f"Anil_Karathra_{title.replace(' ', '_')}.pdf",
+                file_name=_pdf_filename(title),
                 mime="application/pdf",
                 type="primary",
             )
@@ -217,7 +227,7 @@ with tab_dashboard:
             st.download_button(
                 "⬇ Download this resume (PDF)",
                 data=chosen["pdf_bytes"],
-                file_name=f"Anil_Karathra_{pick.replace(' ', '_')}.pdf",
+                file_name=_pdf_filename(pick),
                 mime="application/pdf",
             )
         profile = st.session_state.database.get("profile", {}) if st.session_state.database else {}
