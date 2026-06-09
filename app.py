@@ -6,6 +6,7 @@ Set your key first:  export GEMINI_API_KEY=...
 (or paste it into the sidebar at runtime).
 """
 
+import base64
 import io
 import json
 import os
@@ -66,7 +67,16 @@ if st.session_state.database is None:
         except Exception:
             pass
     else:
-        _raw_db = _secret("EXPERIENCE_DB")
+        # Preferred: base64 single-line secret (TOML-safe). Falls back to a plain
+        # JSON secret for backward compatibility.
+        _raw_db = _secret("EXPERIENCE_DB_B64")
+        if _raw_db:
+            try:
+                _raw_db = base64.b64decode(_raw_db).decode("utf-8")
+            except Exception:
+                _raw_db = None
+        if not _raw_db:
+            _raw_db = _secret("EXPERIENCE_DB")
         if _raw_db:
             try:
                 st.session_state.database = json.loads(_raw_db)
