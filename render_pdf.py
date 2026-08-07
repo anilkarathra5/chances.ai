@@ -24,7 +24,7 @@ resume schema:
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
 from reportlab.lib.colors import black, HexColor
 from reportlab.platypus import (
     BaseDocTemplate, Frame, PageTemplate,
@@ -94,11 +94,14 @@ def _styles(s: float) -> dict:
         "RIGHT_ITALIC": ParagraphStyle("ri", fontName=SERIF_ITALIC, fontSize=b["entry"] * s,
                                        alignment=TA_RIGHT, leading=b["entry_lead"] * s),
         "BULLET": ParagraphStyle("bullet", fontName=SERIF, fontSize=b["bullet"] * s,
-                                 alignment=TA_LEFT, leading=b["bullet_lead"] * s,
+                                 alignment=TA_JUSTIFY, leading=b["bullet_lead"] * s,
                                  leftIndent=b["left_indent"] * s, bulletIndent=b["bullet_indent"] * s,
                                  spaceAfter=0),
         "SKILL": ParagraphStyle("skill", fontName=SERIF, fontSize=b["skill"] * s,
                                 alignment=TA_LEFT, leading=b["skill_lead"] * s, spaceAfter=0),
+        "SUMMARY_TEXT": ParagraphStyle("summary_text", fontName=SERIF, fontSize=b["skill"] * s,
+                                       alignment=TA_JUSTIFY, leading=b["skill_lead"] * s,
+                                       spaceAfter=b["sp_after_skills"] * s),
         "EDU_LEFT": ParagraphStyle("edu", fontName=SERIF_BOLD, fontSize=b["entry"] * s,
                                    alignment=TA_LEFT, leading=b["entry_lead"] * s),
     }
@@ -144,6 +147,10 @@ def _build_story(profile, resume, st, s, width):
         story.append(Paragraph(title.upper(), st["SECTION"]))
         story.append(HRFlowable(width="100%", thickness=0.8, color=black,
                                 spaceBefore=1 * s, spaceAfter=b["sp_hr_after"] * s))
+
+    if profile.get("summary"):
+        section_header("Profile Summary")
+        story.append(Paragraph(_esc(profile["summary"]), st["SUMMARY_TEXT"]))
 
     def entry(item):
         company, location = _esc(item.get("company", "")), _esc(item.get("location", ""))

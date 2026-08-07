@@ -22,6 +22,10 @@ st.set_page_config(page_title="Resume Tailor", page_icon="📄", layout="wide")
 
 if "database" not in st.session_state:
     st.session_state.database = None
+if "db_mtime" not in st.session_state:
+    st.session_state.db_mtime = None
+if "db_is_override" not in st.session_state:
+    st.session_state.db_is_override = False
 if "history" not in st.session_state:
     st.session_state.history = []  # each: {job_title, match_score, result, pdf_bytes, ts}
 
@@ -59,29 +63,35 @@ _require_password()
 # data lives only in encrypted secrets and never in the public repo. The sidebar
 # uploader can still override either.
 _DB_PATH = os.path.join(os.path.dirname(__file__), "experience_database.json")
-if st.session_state.database is None:
-    if os.path.exists(_DB_PATH):
+if os.path.exists(_DB_PATH):
+    # Reload whenever the bundled file changes on disk, so an already-open session
+    # picks up edits without needing a restart — but never clobber an uploaded override.
+    _db_mtime = os.path.getmtime(_DB_PATH)
+    if not st.session_state.db_is_override and (
+        st.session_state.database is None or st.session_state.db_mtime != _db_mtime
+    ):
         try:
             with open(_DB_PATH, encoding="utf-8") as f:
                 st.session_state.database = json.load(f)
+            st.session_state.db_mtime = _db_mtime
         except Exception:
             pass
-    else:
-        # Preferred: base64 single-line secret (TOML-safe). Falls back to a plain
-        # JSON secret for backward compatibility.
-        _raw_db = _secret("EXPERIENCE_DB_B64")
-        if _raw_db:
-            try:
-                _raw_db = base64.b64decode(_raw_db).decode("utf-8")
-            except Exception:
-                _raw_db = None
-        if not _raw_db:
-            _raw_db = _secret("EXPERIENCE_DB")
-        if _raw_db:
-            try:
-                st.session_state.database = json.loads(_raw_db)
-            except Exception:
-                pass
+elif st.session_state.database is None:
+    # Preferred: base64 single-line secret (TOML-safe). Falls back to a plain
+    # JSON secret for backward compatibility.
+    _raw_db = _secret("EXPERIENCE_DB_B64")
+    if _raw_db:
+        try:
+            _raw_db = base64.b64decode(_raw_db).decode("utf-8")
+        except Exception:
+            _raw_db = None
+    if not _raw_db:
+        _raw_db = _secret("EXPERIENCE_DB")
+    if _raw_db:
+        try:
+            st.session_state.database = json.loads(_raw_db)
+        except Exception:
+            pass
 
 
 def make_pdf_bytes(profile: dict, resume: dict) -> bytes:
@@ -128,6 +138,7 @@ with st.sidebar:
     if db_file is not None:
         try:
             st.session_state.database = json.load(db_file)
+            st.session_state.db_is_override = True
             n = len(st.session_state.database.get("accomplishments", []))
             st.success(f"Loaded upload — {n} accomplishments.")
         except json.JSONDecodeError as e:

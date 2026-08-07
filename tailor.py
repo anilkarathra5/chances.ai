@@ -438,6 +438,8 @@ def render_resume_markdown(profile: dict, resume: dict) -> str:
     contact = "  |  ".join(b for b in bits if b)
     if contact:
         lines.append(contact)
+    if profile.get("summary"):
+        lines.append(f"\n{profile['summary']}")
 
     if resume.get("education"):
         lines.append("\n## Education")
