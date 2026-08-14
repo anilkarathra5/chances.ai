@@ -175,7 +175,9 @@ with tab_tailor:
             st.error(f"Something went wrong: {e}")
             st.stop()
 
-        profile = st.session_state.database.get("profile", {})
+        profile = tailor.resolve_profile_summary(
+            st.session_state.database.get("profile", {}), result.get("profile_summary_key", "summary")
+        )
         resume = result.get("resume", {})
         try:
             pdf_bytes = make_pdf_bytes(profile, resume)
@@ -254,4 +256,5 @@ with tab_dashboard:
                 mime="application/pdf",
             )
         profile = st.session_state.database.get("profile", {}) if st.session_state.database else {}
+        profile = tailor.resolve_profile_summary(profile, chosen["result"].get("profile_summary_key", "summary"))
         st.markdown(tailor.render_resume_markdown(profile, chosen["result"].get("resume", {})))

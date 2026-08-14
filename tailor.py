@@ -389,6 +389,11 @@ ORGANIZING THE RESUME:
 - For "technical_skills", include ALL of the candidate's skills from the database — do NOT optimize, prioritize, drop, or add any — grouped under these labels in this order: "Software", "Design Knowledge", "Manufacturing and Prototyping", "Programming and others", "Certifications". (This section is finalized in code from the database regardless, so just include everything.)
 - Include all education from the database.
 
+PROFILE SUMMARY:
+- The candidate has two fixed profile summary options in "profile" — "summary" (design-focused) and "summary_manufacturing" (manufacturing/production-focused). Do NOT rewrite or blend them.
+- Pick whichever one the target job is actually asking for: use "summary_manufacturing" for manufacturing engineering, process/production, quality, tooling, or shop-floor-focused roles; use "summary" for product/mechanical design, R&D, or CAD/FEA-centric roles.
+- Return the chosen key verbatim as "profile_summary_key" (one of "summary" or "summary_manufacturing").
+
 SELECTION (FILL ONE FULL PAGE — do not overflow to a second page, but do not leave it sparse either):
 - Include EVERY real work and internship role: each "work_experience" entry must appear with at least 1-2 bullets. NEVER drop an entire job. Only a clearly off-target PROJECT or VOLUNTEER entry may be dropped, and only if space is genuinely tight.
 - Be generous with the candidate's strongest, most job-relevant accomplishments so the page is well filled. The most relevant current/recent roles should get 4-6 bullets; less-relevant roles get 1-3.
@@ -404,6 +409,7 @@ Return ONLY a JSON object (no prose, no code fences) with exactly these keys:
 - "requirements": object with arrays "met", "partial", "gaps" (each an array of short strings)
 - "missing_keywords": ATS keywords from the JD the candidate cannot truthfully claim (array of strings)
 - "selected_accomplishment_ids": ids used, best-first (array of strings)
+- "profile_summary_key": "summary" or "summary_manufacturing" (string, per the PROFILE SUMMARY rule above)
 - "resume": object with:
     - "education": array of objects {{"institution","location","degree","date"}}
     - "technical_skills": object mapping each label (string) to an array of strings
@@ -422,11 +428,20 @@ CANDIDATE EXPERIENCE DATABASE:
     result = _ensure_absolute_figures(result, database)
     result = _limit_opening_verbs(result)
     result = _sort_experience(result)
+    if result.get("profile_summary_key") not in ("summary", "summary_manufacturing"):
+        result["profile_summary_key"] = "summary"
     # Skills are finalized deterministically from the database, not curated by the model.
     resume = result.setdefault("resume", {})
     resume["technical_skills"] = _build_skills_from_db(database)
     resume["education"] = _build_education_from_db(database)
     return result
+
+
+def resolve_profile_summary(profile: dict, profile_summary_key: str) -> dict:
+    """Return a copy of profile with 'summary' swapped to the variant the model
+    picked for this job ("summary" or "summary_manufacturing")."""
+    chosen = profile.get(profile_summary_key) or profile.get("summary", "")
+    return {**profile, "summary": chosen}
 
 
 def render_resume_markdown(profile: dict, resume: dict) -> str:
