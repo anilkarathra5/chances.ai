@@ -157,6 +157,7 @@ tab_tailor, tab_dashboard = st.tabs(["Tailor a resume", "Dashboard"])
 
 with tab_tailor:
     jd_text = st.text_area("Job description", height=260, placeholder="Paste the full job posting here…")
+    st.caption("Shortcut: type just **Generic**, **Design**, or **Manufacturing** to generate a general-purpose resume for that track instead of tailoring to a real posting.")
     go = st.button("Tailor resume", type="primary", disabled=not jd_text.strip())
 
     if go:
