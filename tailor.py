@@ -351,6 +351,25 @@ def _limit_opening_verbs(result: dict) -> dict:
     return result
 
 
+# An em/en-dash (or hyphen used as one) surrounded by spaces is a clause-
+# separating aside, e.g. "team of four — three engineers — to deliver...".
+# That pattern is a common LLM writing tell, not something the candidate
+# would write, so it's normalized away even if the prompt rule is missed.
+# Dashes with no surrounding space (date ranges like "10,000–20,000") are
+# untouched, as is the separate "dates" field (built independently).
+_DASH_ASIDE_RE = re.compile(r"\s+[—–-]\s+")
+
+
+def _strip_dash_asides(result: dict) -> dict:
+    resume = result.get("resume") or {}
+    for sec in ("work_experience", "projects", "volunteering"):
+        for entry in resume.get(sec) or []:
+            bullets = entry.get("bullets")
+            if isinstance(bullets, list):
+                entry["bullets"] = [_DASH_ASIDE_RE.sub(", ", b) if b else b for b in bullets]
+    return result
+
+
 def _build_education_from_db(database: dict) -> list:
     """Build the education section straight from the database so factual details
     (degree + field, dates) are never dropped or reworded by the model."""
@@ -435,6 +454,7 @@ CRITICAL RULES:
 - Each bullet: strong action verb first, quantified with a REAL metric where one exists, concise (ideally one line). Use past tense for completed work; for a current role's ongoing responsibilities, present-tense verbs (e.g. "Leading", "Designing") are fine — follow the tense implied by the accomplishment's wording.
 - Vary bullet opening verbs: use any given opening action verb at most TWICE across the whole resume, and NEVER start two adjacent bullets with the same verb. Choose precise verbs that reflect the actual action, e.g.: Designed, Developed, Defined, Automated, Standardized, Reduced, Executed, Delivered, Coordinated, Drove, Built, Owned, Performed, Conducted, Engineered, Implemented, Established, Optimized, Prototyped, Directed, Led, Spearheaded, Mentored, Managed, Streamlined, Improved, Created, Produced.
 - Spell out a whole number ten or below as words ONLY when it stands alone with nothing attached to it (e.g. "led six engineers", "analyzed three candidate designs", "across four manufacturing cells", "delivered in nine months"). Numbers above ten stay as numerals. Keep a number as a numeral whenever it has an attached prefix or suffix — currency ($3, $200K), percentages (15%, 20%), a symbol/unit, or an identifier/code (MP4, ASME A17.1, IBC 2024) — and keep all dates and years as numerals. This only changes the word-vs-numeral form of standalone counts; never change a real metric's value.
+- NEVER use an em-dash or a spaced hyphen/en-dash as a clause-separating aside inside a bullet (e.g. "team of four — three engineers and an industrial designer — to deliver..."). Write the bullet as one plain clause, or split the aside off with a comma or parentheses instead.
 
 ORGANIZING THE RESUME:
 - Map each selected accomplishment back to its role via "role_id" to get company, title, and location. Convert dates from "YYYY-MM" to "Mon YYYY" (e.g. "2025-05" -> "May 2025"); render an "end_date" of "present" as "Present".
@@ -480,6 +500,7 @@ JOB DESCRIPTION:
 CANDIDATE EXPERIENCE DATABASE:
 {json.dumps(database, indent=2)}"""
     result = _clean_placeholders(_extract_json(_call(provider, client, model, prompt, max_tokens=16384)))
+    result = _strip_dash_asides(result)
     result = _ensure_absolute_figures(result, database)
     result = _limit_opening_verbs(result)
     result = _sort_experience(result)
