@@ -132,6 +132,12 @@ with st.sidebar:
         help=_cfg["key_help"] + " — stored only for this session.",
     )
     model = st.selectbox("Model", _cfg["models"], index=0)
+    try:
+        import anthropic as _anthropic_diag
+        _anthropic_ver = _anthropic_diag.__version__
+    except Exception as _e:
+        _anthropic_ver = f"import failed: {_e}"
+    st.caption(f"🔧 diag: anthropic SDK version = {_anthropic_ver}")
     st.divider()
     st.subheader("Experience database")
     db_file = st.file_uploader("Override experience_database.json (optional)", type=["json"])
