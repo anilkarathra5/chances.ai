@@ -94,11 +94,13 @@ def _call_gemini(client, model: str, prompt: str, max_tokens: int) -> str:
 
 def _call_claude(client, model: str, prompt: str, max_tokens: int) -> str:
     # Claude has no JSON-mode flag, but the prompts already demand JSON-only output
-    # and _extract_json strips any stray fences/prose. Low temperature = faithful.
+    # and _extract_json strips any stray fences/prose. No "temperature" kwarg:
+    # anthropic SDK v1.0 dropped temperature/top_p/top_k from Messages.create()
+    # entirely, and newer Claude models reject non-default values server-side —
+    # fidelity comes from the prompt's own low-temperature-style instructions.
     resp = client.messages.create(
         model=model,
         max_tokens=max_tokens,
-        temperature=0.3,
         messages=[{"role": "user", "content": prompt}],
     )
     text = "".join(getattr(b, "text", "") for b in resp.content
