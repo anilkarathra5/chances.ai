@@ -431,6 +431,18 @@ GENERIC_REQUESTS = {
             "production, grounded in solid CAD, FEA, and GD&T fundamentals."
         ),
     },
+    "tech": {
+        "job_title": "Mechanical Engineer (Design & Applied AI)",
+        "profile_summary_key": "summary_tech",
+        "jd_text": (
+            "We are looking for a Mechanical Engineer who also codes and applies "
+            "AI tooling to engineering work. Responsibilities include CAD "
+            "modeling, FEA and structural analysis, GD&T and tolerancing, plus "
+            "writing scripts and small tools (Python) and applying AI/LLM-based "
+            "tools to speed up design, analysis, and documentation-heavy "
+            "engineering work."
+        ),
+    },
 }
 
 
@@ -465,9 +477,9 @@ ORGANIZING THE RESUME:
 - Include all education from the database.
 
 PROFILE SUMMARY:
-- The candidate has three fixed profile summary options in "profile" — "summary" (design-focused), "summary_manufacturing" (manufacturing/production-focused), and "summary_balanced" (neutral, spans both). Do NOT rewrite or blend them.
-- Pick whichever one the target job is actually asking for: use "summary_manufacturing" for manufacturing engineering, process/production, quality, tooling, or shop-floor-focused roles; use "summary" for product/mechanical design, R&D, or CAD/FEA-centric roles; use "summary_balanced" when the JD mixes design and manufacturing roughly evenly, is a generalist mechanical engineer posting, or doesn't clearly lean either way.
-- Return the chosen key verbatim as "profile_summary_key" (one of "summary", "summary_manufacturing", or "summary_balanced").
+- The candidate has four fixed profile summary options in "profile" — "summary" (design-focused), "summary_manufacturing" (manufacturing/production-focused), "summary_balanced" (neutral, spans both), and "summary_tech" (design/manufacturing background plus coding and applied-AI tooling). Do NOT rewrite or blend them.
+- Pick whichever one the target job is actually asking for: use "summary_manufacturing" for manufacturing engineering, process/production, quality, tooling, or shop-floor-focused roles; use "summary" for product/mechanical design, R&D, or CAD/FEA-centric roles; use "summary_balanced" when the JD mixes design and manufacturing roughly evenly, is a generalist mechanical engineer posting, or doesn't clearly lean either way; use "summary_tech" when the JD explicitly calls for coding, scripting, automation, computational/digital engineering, or AI/ML familiarity alongside the mechanical engineering work.
+- Return the chosen key verbatim as "profile_summary_key" (one of "summary", "summary_manufacturing", "summary_balanced", or "summary_tech").
 
 SELECTION (FILL ONE FULL PAGE — do not overflow to a second page, but do not leave it sparse either):
 - Include EVERY real work and internship role: each "work_experience" entry must appear with at least 1-2 bullets. NEVER drop an entire job. Only a clearly off-target PROJECT or VOLUNTEER entry may be dropped, and only if space is genuinely tight.
@@ -484,7 +496,7 @@ Return ONLY a JSON object (no prose, no code fences) with exactly these keys:
 - "requirements": object with arrays "met", "partial", "gaps" (each an array of short strings)
 - "missing_keywords": ATS keywords from the JD the candidate cannot truthfully claim (array of strings)
 - "selected_accomplishment_ids": ids used, best-first (array of strings)
-- "profile_summary_key": "summary", "summary_manufacturing", or "summary_balanced" (string, per the PROFILE SUMMARY rule above)
+- "profile_summary_key": "summary", "summary_manufacturing", "summary_balanced", or "summary_tech" (string, per the PROFILE SUMMARY rule above)
 - "resume": object with:
     - "education": array of objects {{"institution","location","degree","date"}}
     - "technical_skills": object mapping each label (string) to an array of strings
@@ -504,7 +516,7 @@ CANDIDATE EXPERIENCE DATABASE:
     result = _ensure_absolute_figures(result, database)
     result = _limit_opening_verbs(result)
     result = _sort_experience(result)
-    if result.get("profile_summary_key") not in ("summary", "summary_manufacturing", "summary_balanced"):
+    if result.get("profile_summary_key") not in ("summary", "summary_manufacturing", "summary_balanced", "summary_tech"):
         result["profile_summary_key"] = "summary"
     if generic:
         # Pin deterministically for the shorthand keywords rather than trusting
@@ -520,7 +532,8 @@ CANDIDATE EXPERIENCE DATABASE:
 
 def resolve_profile_summary(profile: dict, profile_summary_key: str) -> dict:
     """Return a copy of profile with 'summary' swapped to the variant the model
-    picked for this job ("summary", "summary_manufacturing", or "summary_balanced")."""
+    picked for this job ("summary", "summary_manufacturing", "summary_balanced",
+    or "summary_tech")."""
     chosen = profile.get(profile_summary_key) or profile.get("summary", "")
     return {**profile, "summary": chosen}
 
