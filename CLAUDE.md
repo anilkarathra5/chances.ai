@@ -48,8 +48,8 @@ roles I've tailored for by fit.
 - Backend is **switchable** via the sidebar Provider toggle (see `PROVIDERS` in
   `tailor.py`). Default is the **Google Gemini API** (free tier; default model
   `gemini-2.5-flash`, also `gemini-2.0-flash`/`gemini-1.5-flash`); optional is the
-  **Anthropic Claude API** (paid; `claude-sonnet-4-6`/`claude-opus-4-8`/
-  `claude-haiku-4-5-20251001`). The Claude SDK is imported lazily.
+  **Anthropic Claude API** (paid; `claude-fable-5-1`/`claude-opus-5`/
+  `claude-sonnet-5`/`claude-haiku-4-5-20251001`). The Claude SDK is imported lazily.
 - API key per provider from its env var (`GEMINI_API_KEY`/`GOOGLE_API_KEY` or
   `ANTHROPIC_API_KEY`) or the sidebar field. Free Gemini key:
   https://aistudio.google.com/apikey.

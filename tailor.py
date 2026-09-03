@@ -32,7 +32,7 @@ PROVIDERS = {
         "key_help": "Free key from https://aistudio.google.com/apikey",
     },
     "Anthropic Claude": {
-        "models": ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5-20251001"],
+        "models": ["claude-fable-5-1", "claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001"],
         "key_env": ["ANTHROPIC_API_KEY"],
         "key_label": "Anthropic API key",
         "key_help": "Key from https://console.anthropic.com/settings/keys (paid usage).",
