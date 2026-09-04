@@ -26,7 +26,7 @@ from google.genai import types
 # Switchable LLM backends. Gemini is the default (free tier); Claude is optional.
 PROVIDERS = {
     "Google Gemini": {
-        "models": ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"],
+        "models": ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"],
         "key_env": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
         "key_label": "Google Gemini API key",
         "key_help": "Free key from https://aistudio.google.com/apikey",
@@ -39,7 +39,7 @@ PROVIDERS = {
     },
 }
 DEFAULT_PROVIDER = "Google Gemini"
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-3.8-flash"
 
 
 def get_client(provider: str, api_key: str):
@@ -65,9 +65,13 @@ def _call_gemini(client, model: str, prompt: str, max_tokens: int) -> str:
         temperature=0.3,
         response_mime_type="application/json",
     )
-    # Gemini 2.5 models "think" by default, drawing from max_output_tokens — which
-    # can truncate the JSON. Disable thinking for 2.5 (1.5/2.0 don't accept it).
-    if model.startswith("gemini-2.5"):
+    # Gemini 2.5/3.x models "think" by default, drawing from max_output_tokens —
+    # which can truncate the JSON. Gemini 3 replaced thinking_budget with
+    # thinking_level and can't fully disable thinking, so "minimal" is the closest
+    # equivalent; 2.5 still uses the older thinking_budget=0 to turn it off.
+    if model.startswith("gemini-3"):
+        cfg["thinking_config"] = types.ThinkingConfig(thinking_level="minimal")
+    elif model.startswith("gemini-2.5"):
         cfg["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
 
     resp = client.models.generate_content(
@@ -81,7 +85,7 @@ def _call_gemini(client, model: str, prompt: str, max_tokens: int) -> str:
     if finish == "MAX_TOKENS":
         raise RuntimeError(
             "Gemini ran out of output tokens before completing the JSON. "
-            "Try the gemini-2.0-flash model, or a smaller experience database."
+            "Try the gemini-2.5-flash model, or a smaller experience database."
         )
     text = resp.text
     if not text:
