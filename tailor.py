@@ -67,10 +67,11 @@ def _call_gemini(client, model: str, prompt: str, max_tokens: int) -> str:
     )
     # Gemini 2.5/3.x models "think" by default, drawing from max_output_tokens —
     # which can truncate the JSON. Gemini 3 replaced thinking_budget with
-    # thinking_level and can't fully disable thinking, so "minimal" is the closest
-    # equivalent; 2.5 still uses the older thinking_budget=0 to turn it off.
+    # thinking_level; "minimal" isn't accepted on all gemini-3 models (some
+    # reject it with INVALID_ARGUMENT), so "low" is the safe minimum across the
+    # family. 2.5 still uses the older thinking_budget=0 to turn it off.
     if model.startswith("gemini-3"):
-        cfg["thinking_config"] = types.ThinkingConfig(thinking_level="minimal")
+        cfg["thinking_config"] = types.ThinkingConfig(thinking_level="low")
     elif model.startswith("gemini-2.5"):
         cfg["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
 
